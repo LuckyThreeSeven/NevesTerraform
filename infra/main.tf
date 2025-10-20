@@ -40,6 +40,7 @@ module "vpc" {
 
   enable_nat_gateway = true
   enable_dns_hostnames = true
+  single_nat_gateway = true
 
   tags = { "kubernetes.io/cluster/${var.team_name}-cluster" = "shared" }
   public_subnet_tags = { "kubernetes.io/role/elb" = "1" }
@@ -50,7 +51,6 @@ module "vpc" {
 # ------------------------------------------------------------------------------
 # 모듈: EKS
 # ------------------------------------------------------------------------------
-
 resource "aws_security_group" "eks" {
   name   = "${var.team_name}-eks-sg"
   vpc_id = module.vpc.vpc_id
@@ -99,7 +99,7 @@ module "eks" {
       instance_types = ["t3.medium"]
       min_size       = 2
       max_size       = 5
-      desired_size   = 2
+      desired_size   = 3
       vpc_security_group_ids = [aws_security_group.eks.id]
     }
   }
@@ -126,6 +126,37 @@ resource "aws_security_group" "bastion" {
   }
 }
 
+resource "aws_iam_role" "bastion_role" {
+  name = "${var.team_name}-bastion-role"
+
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Action    = "sts:AssumeRole",
+        Effect    = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.team_name}-bastion-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "bastion_ssm_policy" {
+  role       = aws_iam_role.bastion_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "bastion_profile" {
+  name = "${var.team_name}-bastion-profile"
+  role = aws_iam_role.bastion_role.name
+}
+
 resource "aws_instance" "bastion" {
   ami           = "ami-00e73adb2e2c80366"
   instance_type = "t3.micro"
@@ -134,9 +165,10 @@ resource "aws_instance" "bastion" {
   vpc_security_group_ids = [aws_security_group.bastion.id]
   associate_public_ip_address = true
 
+  iam_instance_profile = aws_iam_instance_profile.bastion_profile.name
 
   tags = {
-    Name      = "${var.team_name}-bastion-host"
+    Name = "${var.team_name}-bastion-host"
   }
 }
 
@@ -216,21 +248,3 @@ resource "aws_efs_mount_target" "private" {
   subnet_id       = module.vpc.private_subnets[count.index]
   security_groups = [aws_security_group.efs.id]
 }
-
-# ------------------------------------------------------------------------------
-# 스토리지: S3 Bucket
-# ------------------------------------------------------------------------------
-resource "aws_s3_bucket" "main" {
-  bucket_prefix = "${var.team_name}-s3-"
-  force_destroy = true
-}
-
-resource "aws_s3_bucket_public_access_block" "main" {
-  bucket = aws_s3_bucket.main.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-

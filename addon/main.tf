@@ -1,7 +1,6 @@
 # ------------------------------------------------------------------------------
 # LB Controller
 # ------------------------------------------------------------------------------
-
 module "lb_controller_irsa" {
   source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version   = "5.39.0"
@@ -40,13 +39,12 @@ resource "helm_release" "aws_lb_controller" {
     })
   ]
 
-  depends_on = [ module.efs_csi_driver_irsa ]
+  depends_on = [ module.lb_controller_irsa]
 }
 
 # ------------------------------------------------------------------------------
 # ExternalDNS
 # ------------------------------------------------------------------------------
-
 module "external_dns_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.39.0"
@@ -104,7 +102,6 @@ resource "helm_release" "external_dns" {
 # ------------------------------------------------------------------------------
 # EFS
 # ------------------------------------------------------------------------------
-
 module "efs_csi_driver_irsa" {
   source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version   = "5.39.0"
@@ -149,7 +146,6 @@ resource "helm_release" "aws_efs_csi_driver" {
 # ------------------------------------------------------------------------------
 # istio minimal setting
 # ------------------------------------------------------------------------------
-
 resource "helm_release" "istio_base" {
   name             = "istio-base"
   chart            = "base"

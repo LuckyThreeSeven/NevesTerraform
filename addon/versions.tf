@@ -14,6 +14,8 @@ terraform {
 
 provider "aws" {
   region = data.terraform_remote_state.infra.outputs.aws_region
+  access_key  = var.aws_access_key
+  secret_key  = var.aws_secret_key
 }
 
 provider "helm" {

@@ -181,3 +181,73 @@ resource "helm_release" "istiod" {
   ]
 }
 
+# Prometheus 설치
+
+resource "helm_release" "prometheus" {
+  name             = "prometheus"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "kube-prometheus-stack"
+  version          = "67.2.0"
+  namespace        = "monitoring"
+  create_namespace = true
+  timeout          = 600
+  wait             = true
+
+  depends_on = [
+    helm_release.aws_lb_controller
+  ]
+
+  values = [
+    yamlencode({
+      alertmanager = {
+        persistence = { enabled = false }
+      }
+      prometheus = {
+        prometheusSpec = {
+          storageSpec = {}
+          serviceMonitorNamespaceSelector = {
+            matchNames = [
+              "monitoring",
+              "istio-system",
+              "default",
+              "neves"
+            ]
+          }
+          podMonitorNamespaceSelector = {
+            matchNames = [
+              "monitoring",
+              "istio-system",
+              "default",
+              "neves"
+            ]
+          }
+        }
+      }
+      grafana = {
+        enabled = false
+      }
+    })
+  ]
+}
+
+# Metrics Server 설치
+
+resource "helm_release" "metrics_server" {
+  name       = "metrics-server"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  version    = "3.12.0"
+  namespace  = "kube-system"
+
+  depends_on = [
+    helm_release.aws_lb_controller
+  ]
+
+  values = [
+    yamlencode({
+      args = [
+        "--kubelet-insecure-tls"
+      ]
+    })
+  ]
+}

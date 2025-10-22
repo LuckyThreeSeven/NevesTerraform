@@ -180,6 +180,7 @@ resource "kubernetes_storage_class" "efs_sc" {
   parameters = {
     fileSystemId = data.terraform_remote_state.infra.outputs.efs_file_system_id
     directoryPerms = "777"
+    provisioningMode = "efs-ap"
   }
 }
 

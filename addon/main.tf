@@ -237,8 +237,7 @@ resource "helm_release" "prometheus" {
   wait             = true
 
   depends_on = [
-    helm_release.aws_lb_controller,
-    helm_release.istiod
+    helm_release.aws_lb_controller
   ]
 
   values = [
@@ -260,14 +259,6 @@ resource "helm_release" "prometheus" {
       grafana = {
         persistence = { enabled = false }
         adminPassword = var.grafana_admin_password
-
-        # 나중에 수정 혹은 삭제가 필요합니다.
-        "grafana.ini" = {
-          server = {
-            root_url = "https://mnt.neves.com/grafana"
-            serve_from_sub_path = true
-          }
-        }
       }
     })
   ]

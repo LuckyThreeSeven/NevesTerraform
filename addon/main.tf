@@ -231,7 +231,7 @@ resource "helm_release" "prometheus" {
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "kube-prometheus-stack"
   version          = "67.2.0"
-  namespace        = "istio-system"
+  namespace        = "monitoring"
   create_namespace = true
   timeout          = 600
   wait             = true
@@ -258,7 +258,16 @@ resource "helm_release" "prometheus" {
         }
       }
       grafana = {
-        enabled = false
+        persistence = { enabled = false }
+        adminPassword = var.grafana_admin_password
+
+        # 나중에 수정 혹은 삭제가 필요합니다.
+        "grafana.ini" = {
+          server = {
+            root_url = "https://mnt.neves.com/grafana"
+            serve_from_sub_path = true
+          }
+        }
       }
     })
   ]

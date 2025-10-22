@@ -100,8 +100,36 @@ resource "helm_release" "external_dns" {
 }
 
 # ------------------------------------------------------------------------------
+# EBS
+# ------------------------------------------------------------------------------
+
+data "aws_iam_policy" "ebs_csi_policy" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+module "irsa_ebs_csi" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+  version = "~> 5.0"
+
+  create_role                 = true
+  role_name                   = "AmazonEKSTFEBSCSIRole-${data.terraform_remote_state.infra.outputs.eks_cluster_name}"
+  provider_url                = module.eks.oidc_provider
+  role_policy_arns            = [data.aws_iam_policy.ebs_csi_policy.arn]
+  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+  depends_on = [ module.eks ]
+}
+
+resource "aws_eks_addon" "ebs_csi" {
+  cluster_name             = module.eks.cluster_name
+  addon_name               = "aws-ebs-csi-driver"
+  service_account_role_arn = module.irsa_ebs_csi.iam_role_arn
+  depends_on = [ module.irsa_ebs_csi ]
+}
+
+# ------------------------------------------------------------------------------
 # EFS
 # ------------------------------------------------------------------------------
+
 module "efs_csi_driver_irsa" {
   source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version   = "5.39.0"
@@ -143,6 +171,19 @@ resource "helm_release" "aws_efs_csi_driver" {
   ]
 }
 
+resource "kubernetes_storage_class" "efs_sc" {
+  metadata  {
+    name = "efs-sc"
+  }
+  storage_provisioner = "efs.csi.aws.com"
+  reclaim_policy = "Retain"
+  volume_binding_mode = "Immediate"
+  parameters = {
+    fileSystemId = aws_efs_file_system.neves_efs.id
+    directoryPerms = "777"
+  }
+}
+
 # ------------------------------------------------------------------------------
 # istio minimal setting
 # ------------------------------------------------------------------------------
@@ -174,14 +215,16 @@ resource "helm_release" "istiod" {
       }
     })
   ]
- 
+
   depends_on = [
     helm_release.istio_base,
     helm_release.aws_lb_controller
   ]
 }
 
-# Prometheus 설치
+# ------------------------------------------------------------------------------
+# prometheus
+# ------------------------------------------------------------------------------
 
 resource "helm_release" "prometheus" {
   name             = "prometheus"
@@ -230,7 +273,9 @@ resource "helm_release" "prometheus" {
   ]
 }
 
-# Metrics Server 설치
+# ------------------------------------------------------------------------------
+# metrics server
+# ------------------------------------------------------------------------------
 
 resource "helm_release" "metrics_server" {
   name       = "metrics-server"

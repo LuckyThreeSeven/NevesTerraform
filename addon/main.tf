@@ -103,27 +103,26 @@ resource "helm_release" "external_dns" {
 # EBS
 # ------------------------------------------------------------------------------
 
-data "aws_iam_policy" "ebs_csi_policy" {
-  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-}
+module "ebs_csi_driver_irsa" {
+  source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version   = "5.39.0"
 
-module "irsa_ebs_csi" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
-  version = "~> 5.0"
+  role_name = "${data.terraform_remote_state.infra.outputs.eks_cluster_name}-ebs-csi-driver"
+  attach_ebs_csi_policy = true
 
-  create_role                 = true
-  role_name                   = "AmazonEKSTFEBSCSIRole-${data.terraform_remote_state.infra.outputs.eks_cluster_name}"
-  provider_url                = module.eks.oidc_provider
-  role_policy_arns            = [data.aws_iam_policy.ebs_csi_policy.arn]
-  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
-  depends_on = [ module.eks ]
+  oidc_providers = {
+    main = {
+      provider_arn               = data.terraform_remote_state.infra.outputs.eks_oidc_provider_arn
+      namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
+    }
+  }
 }
 
 resource "aws_eks_addon" "ebs_csi" {
-  cluster_name             = module.eks.cluster_name
+  cluster_name             = data.terraform_remote_state.infra.outputs.eks_cluster_name
   addon_name               = "aws-ebs-csi-driver"
-  service_account_role_arn = module.irsa_ebs_csi.iam_role_arn
-  depends_on = [ module.irsa_ebs_csi ]
+  service_account_role_arn = module.ebs_csi_driver_irsa.iam_role_arn
+  depends_on = [ module.ebs_csi_driver_irsa ]
 }
 
 # ------------------------------------------------------------------------------
@@ -179,7 +178,7 @@ resource "kubernetes_storage_class" "efs_sc" {
   reclaim_policy = "Retain"
   volume_binding_mode = "Immediate"
   parameters = {
-    fileSystemId = aws_efs_file_system.neves_efs.id
+    fileSystemId = data.terraform_remote_state.infra.outputs.efs_file_system_id
     directoryPerms = "777"
   }
 }

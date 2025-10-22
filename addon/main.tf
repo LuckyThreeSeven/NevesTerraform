@@ -256,10 +256,6 @@ resource "helm_release" "prometheus" {
           podMonitorNamespaceSelector: {}
         }
       }
-      grafana = {
-        persistence = { enabled = false }
-        adminPassword = var.grafana_admin_password
-      }
     })
   ]
 }

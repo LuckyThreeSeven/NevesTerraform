@@ -295,9 +295,9 @@ resource "helm_release" "grafana_operator" {
   name       = "grafana-operator"
   repository = "https://grafana.github.io/helm-charts"
   chart      = "grafana-operator"
-  version    = "v5.9.1"
+  version    = "5.16.0"
   namespace  = "monitoring"
-
+  
   create_namespace = false
   timeout          = 600
   wait             = true
@@ -305,11 +305,4 @@ resource "helm_release" "grafana_operator" {
   depends_on = [
     helm_release.prometheus
   ]
-
-  # 기본 설정으로 설치 (필요시 values 추가)
-  # values = [
-  #   yamlencode({
-  #     # Operator 관련 설정값 (예: 감시할 네임스페이스 지정 등)
-  #   })
-  # ]
 }

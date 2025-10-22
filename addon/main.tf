@@ -231,13 +231,14 @@ resource "helm_release" "prometheus" {
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "kube-prometheus-stack"
   version          = "67.2.0"
-  namespace        = "monitoring"
+  namespace        = "istio-system"
   create_namespace = true
   timeout          = 600
   wait             = true
 
   depends_on = [
-    helm_release.aws_lb_controller
+    helm_release.aws_lb_controller,
+    helm_release.istiod
   ]
 
   values = [

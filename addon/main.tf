@@ -248,22 +248,12 @@ resource "helm_release" "prometheus" {
       prometheus = {
         prometheusSpec = {
           storageSpec = {}
-          serviceMonitorNamespaceSelector = {
-            matchNames = [
-              "monitoring",
-              "istio-system",
-              "default",
-              "neves"
-            ]
-          }
-          podMonitorNamespaceSelector = {
-            matchNames = [
-              "monitoring",
-              "istio-system",
-              "default",
-              "neves"
-            ]
-          }
+          serviceMonitorSelectorNilUsesHelmValues: false
+          serviceMonitorSelector: {}
+          serviceMonitorNamespaceSelector: {}
+          podMonitorSelectorNilUsesHelmValues: false
+          podMonitorSelector: {}
+          podMonitorNamespaceSelector: {}
         }
       }
       grafana = {

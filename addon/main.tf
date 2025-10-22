@@ -257,8 +257,7 @@ resource "helm_release" "prometheus" {
         }
       }
       grafana = {
-        persistence = { enabled = false }
-        adminPassword = var.grafana_admin_password
+        enabled = false
       }
     })
   ]
@@ -285,5 +284,25 @@ resource "helm_release" "metrics_server" {
         "--kubelet-insecure-tls"
       ]
     })
+  ]
+}
+
+# ------------------------------------------------------------------------------
+# Grafana Operator
+# ------------------------------------------------------------------------------
+
+resource "helm_release" "grafana_operator" {
+  name       = "grafana-operator"
+  repository = "https://grafana.github.io/helm-charts"
+  chart      = "grafana-operator"
+  version    = "5.16.0"
+  namespace  = "monitoring"
+  
+  create_namespace = false
+  timeout          = 600
+  wait             = true
+
+  depends_on = [
+    helm_release.prometheus
   ]
 }

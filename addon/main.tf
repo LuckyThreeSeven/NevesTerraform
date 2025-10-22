@@ -175,7 +175,7 @@ resource "kubernetes_storage_class" "efs_sc" {
     name = "efs-sc"
   }
   storage_provisioner = "efs.csi.aws.com"
-  reclaim_policy = "Retain"
+  reclaim_policy = "Delete"
   volume_binding_mode = "Immediate"
   parameters = {
     fileSystemId = data.terraform_remote_state.infra.outputs.efs_file_system_id

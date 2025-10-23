@@ -213,6 +213,16 @@ resource "helm_release" "istiod" {
           PILOT_ENABLE_ALPHA_GATEWAY_API = "true"
         }
       }
+      meshConfig = {
+        defaultConfig = {
+          holdApplicationUntilProxyStarts = true
+          tracing = {
+            zipkin = {
+              address = "zipkin.istio-system.svc.cluster.local:9411"
+            }
+          }
+        }
+      }
     })
   ]
 
@@ -249,11 +259,8 @@ resource "helm_release" "prometheus" {
         prometheusSpec = {
           storageSpec = {}
           serviceMonitorSelectorNilUsesHelmValues: false
-          serviceMonitorSelector: {}
-          serviceMonitorNamespaceSelector: {}
           podMonitorSelectorNilUsesHelmValues: false
-          podMonitorSelector: {}
-          podMonitorNamespaceSelector: {}
+          probeSelectorNilUsesHelmValues: false
         }
       }
       grafana = {

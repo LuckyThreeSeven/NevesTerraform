@@ -217,6 +217,7 @@ resource "helm_release" "istiod" {
         defaultConfig = {
           holdApplicationUntilProxyStarts = true
           tracing = {
+            sampling = 100
             zipkin = {
               address = "zipkin.istio-system.svc.cluster.local:9411"
             }

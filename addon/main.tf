@@ -39,7 +39,7 @@ resource "helm_release" "aws_lb_controller" {
     })
   ]
 
-  depends_on = [ module.lb_controller_irsa]
+  depends_on = [ module.lb_controller_irsa ]
 }
 
 # ------------------------------------------------------------------------------
@@ -228,8 +228,7 @@ resource "helm_release" "istiod" {
   ]
 
   depends_on = [
-    helm_release.istio_base,
-    helm_release.aws_lb_controller
+    helm_release.istio_base
   ]
 }
 
@@ -246,10 +245,6 @@ resource "helm_release" "prometheus" {
   create_namespace = true
   timeout          = 600
   wait             = true
-
-  depends_on = [
-    helm_release.aws_lb_controller
-  ]
 
   values = [
     yamlencode({
@@ -282,10 +277,6 @@ resource "helm_release" "metrics_server" {
   version    = "3.12.0"
   namespace  = "kube-system"
 
-  depends_on = [
-    helm_release.aws_lb_controller
-  ]
-
   values = [
     yamlencode({
       args = [
@@ -312,5 +303,29 @@ resource "helm_release" "grafana_operator" {
 
   depends_on = [
     helm_release.prometheus
+  ]
+}
+
+# ------------------------------------------------------------------------------
+# ArgoCD
+# ------------------------------------------------------------------------------
+
+resource "kubernetes_namespace" "argocd" {
+  metadata {
+    name = "argocd"
+  }
+}
+
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  version    = "3.1.9"
+  namespace  = kubernetes_namespace.argocd.metadata[0].name
+  timeout    = 600
+  wait       = true
+
+  depends_on = [
+    kubernetes_namespace.argocd
   ]
 }

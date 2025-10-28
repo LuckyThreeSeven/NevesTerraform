@@ -187,6 +187,7 @@ resource "kubernetes_storage_class" "efs_sc" {
 # ------------------------------------------------------------------------------
 # istio minimal setting
 # ------------------------------------------------------------------------------
+
 resource "helm_release" "istio_base" {
   name             = "istio-base"
   chart            = "base"
@@ -206,6 +207,12 @@ resource "helm_release" "istiod" {
   version    = "1.27.1"
   timeout    = 600
   wait       = true
+
+  depends_on = [
+    helm_release.istio_base,
+    helm_release.aws_lb_controller
+  ]
+
   values = [
     yamlencode({
       pilot = {
@@ -226,10 +233,6 @@ resource "helm_release" "istiod" {
       }
     })
   ]
-
-  depends_on = [
-    helm_release.istio_base
-  ]
 }
 
 # ------------------------------------------------------------------------------
@@ -245,6 +248,10 @@ resource "helm_release" "prometheus" {
   create_namespace = true
   timeout          = 600
   wait             = true
+
+  depends_on = [
+    helm_release.aws_lb_controller
+  ]
 
   values = [
     yamlencode({
@@ -276,6 +283,10 @@ resource "helm_release" "metrics_server" {
   chart      = "metrics-server"
   version    = "3.12.0"
   namespace  = "kube-system"
+
+  depends_on = [
+    helm_release.aws_lb_controller
+  ]
 
   values = [
     yamlencode({
@@ -320,7 +331,7 @@ resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
-  version    = "3.1.9"
+  version    = "7.7.3"
   namespace  = kubernetes_namespace.argocd.metadata[0].name
   timeout    = 600
   wait       = true

@@ -98,9 +98,9 @@ module "eks" {
     main = {
       name           = "${var.team_name}-node-group"
       instance_types = ["t3.medium"]
-      min_size       = 2
-      max_size       = 5
-      desired_size   = 3
+      min_size       = 3
+      max_size       = 7
+      desired_size   = 4
       vpc_security_group_ids = [aws_security_group.eks.id]
     }
   }

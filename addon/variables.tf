@@ -28,9 +28,3 @@ variable "aws_secret_key" {
   nullable      = false
   sensitive     = true
 }
-
-variable "grafana_admin_password" {
-  description = "Password of Grafana Admin"
-  type        = string
-  default     = "admin1234"
-}
